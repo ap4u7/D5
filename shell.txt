@@ -1,0 +1,93 @@
+from django.contrib.auth.models import User 
+from news.models import Author, Cathegory, Post, PostCathegory, Comment 
+
+# создаем пользователей
+user1 = User.objects.create_user(username = 'first_user') 
+user2 = User.objects.create_user(username = 'second_user') 
+user3 = User.objects.create_user(username = 'third_user') 
+
+# создаем авторов
+author1= Author.objects.create(user = user1)
+author2= Author.objects.create(user = user2)
+
+# создаем категории
+cath_sport = Cathegory.objects.create(name = 'Спорт') 
+cath_policy = Cathegory.objects.create(name = 'Политика') 
+cath_economy = Cathegory.objects.create(name = 'Экономика') 
+cath_culture = Cathegory.objects.create(name = 'Культура') 
+
+# создаем 2 статьи и новость
+article_user1 = Post.objects.create(author = author1, post_type = Post.article, title = "Статья_написанная_user1", content = 'первая статья от user1' * 20)
+article_user2 = Post.objects.create(author = author2, post_type = Post.article, title = "Статья_написанная_user2", content = 'первая статья от user2' * 20)
+news_user1 = Post.objects.create(author = author1, post_type = Post.news, title = "Новость_написанная_user1", content = 'Первая новость от user1' * 100)
+
+# присваиваем категории
+PostCathegory.objects.create(post = article_user1, cathegory = cath_policy)
+PostCathegory.objects.create(post = article_user2, cathegory = cath_economy)
+PostCathegory.objects.create(post = news_user1, cathegory = cath_culture)
+
+# создаем комментарии
+comment1 = Comment.objects.create(post = article_user1, user = user2, content = "коммент user2 №1 к статье user1") 
+comment2 = Comment.objects.create(post = article_user2, user = user1, content = "коммент user2 №1 к статье user1") 
+comment3 = Comment.objects.create(post = news_user1, user = user2, content = "коммент user2 №1 к новости user1") 
+comment4 = Comment.objects.create(post = news_user1, user = user1, content = "коммент user2 №1 к новости user1") 
+
+# лайки
+import random
+list_for_like = [article_user1,
+    article_user2,
+    news_user1,
+    comment1,
+    comment2,
+    comment3,
+    comment4]
+
+for i in range(100):
+    random_obj = random.choice(list_for_like)
+    if i % 2:
+        random_obj.like()
+    else:
+        random_obj.dislike()
+
+
+# считаем рейтинг user1
+rating_user1 = (sum([post.rating*3 for post in Post.objects.filter(author=author1)]) 
+    + sum([comment.rating for comment in Comment.objects.filter(user=author1.user)]) 
+    + sum([comment.rating for comment in Comment.objects.filter(post__author=author1)]))
+author1.update_rating(rating_user1)
+
+    
+# считаем рейтинг user2
+rating_user2 = (sum([post.rating*3 for post in Post.objects.filter(author=author2)])
+    + sum([comment.rating for comment in Comment.objects.filter(user=author2.user)])
+    + sum([comment.rating for comment in Comment.objects.filter(post__author=author2)]))
+author2.update_rating(rating_user2)
+
+
+# лучший автор
+best_author = Author.objects.all().order_by('-rating')[0]
+
+print("Лучший автор")
+print("username:", best_author.user.username)
+print("Рейтинг:", best_author.rating)
+print("")
+
+# лучшая статья
+best_article = Post.objects.filter(post_type = Post.article).order_by('-rating')[0]
+print("Лучшая статья")
+print("Дата:", best_article.created)
+print("Автор:", best_article.author.user.username)
+print("Рейтинг:", best_article.rating)
+print("Заголовок:", best_article.title)
+print("Превью:", best_article.preview())
+print("")
+
+# комментарии к лучшей статье
+print("Комментарии к ней")
+for comment in Comment.objects.filter(post = best_article):
+    print("Дата:", comment.created)
+    print("Автор:", comment.user.username)
+    print("Рейтинг:", comment.rating)
+    print("Комментарий:", comment.content)
+    print("")
+
